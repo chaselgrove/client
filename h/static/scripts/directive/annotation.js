@@ -254,6 +254,22 @@ function AnnotationController(
     }
   };
 
+  vm.applet = function(e) {
+    var annotation_cards = document.querySelectorAll('.annotation-card');
+    var id;
+    for ( var i=0; i< annotation_cards.length; i++ ) {
+      var annotation_card = annotation_cards[i];
+      if ( annotation_card.querySelector('.btn-icon.h-icon-lock') == e.target ) {
+        id = annotation_card.id;
+        }
+      }
+   var el = document.getElementById(id);
+    console.log(el);   
+   var md = el.getElementsByClassName('markdown-body')[0];
+   md.innerHTML += '<iframe width="100%" height="150px" src="http://jonudell.net/h/app_in_anno.html?id=' + id + '"></iframe>';
+   var href = window.location.href;
+  };
+
   /**
    * @ngdoc method
    * @name annotation.AnnotationController#editing.
