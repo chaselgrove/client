@@ -112,8 +112,7 @@
   "browser": {
     "annotator": "./h/static/scripts/vendor/annotator.js",
     "hammerjs": "./node_modules/hammerjs/hammer.js",
-    "katex": "./h/static/scripts/vendor/katex.js",
-    "bootstrap-lite": "./h/static/styles/vendor/bootstrap/bootstrap.js"
+    "katex": "./h/static/scripts/vendor/katex.js"
   },
   "browserify-shim": {
     "annotator": {
@@ -127,11 +126,6 @@
         "jquery"
       ]
     },
-    "bootstrap-lite": {
-      "depends": [
-        "jquery:jQuery"
-      ]
-    },
     "hammerjs": "Hammer",
     "jquery": "$"
   },
@@ -142,7 +136,7 @@
     "test": "gulp test-app",
     "preversion": "npm run test",
     "version": "make clean all && ./scripts/update-changelog.js && git add CHANGELOG.md",
-    "postversion": "git push && git push --tags && ./scripts/create-github-release.js",
+    "postversion": "./scripts/postversion.sh",
     "prepublish": "npm run-script build"
   }
 }
