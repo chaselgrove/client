@@ -9,11 +9,16 @@ var unroll = require('./util').unroll;
 var uiConstants = require('../ui-constants');
 
 var defaultAnnotation = annotationFixtures.defaultAnnotation;
+var newAnnotation = annotationFixtures.newAnnotation;
 
 var fixtures = immutable({
   pair: [
     Object.assign(defaultAnnotation(), {id: 1, $$tag: 't1'}),
     Object.assign(defaultAnnotation(), {id: 2, $$tag: 't2'}),
+  ],
+  newPair: [
+    Object.assign(newAnnotation(), {$$tag: 't1'}),
+    Object.assign(newAnnotation(), {$$tag: 't2'}),
   ],
 });
 
@@ -59,10 +64,72 @@ describe('annotationUI', function () {
       clock.restore();
     });
 
-    it('adds annotations to the current state', function () {
+    it('adds annotations not in the store', function () {
       var annot = defaultAnnotation();
       annotationUI.addAnnotations([annot]);
       assert.deepEqual(annotationUI.getState().annotations, [annot]);
+    });
+
+    it('updates annotations with matching IDs in the store', function () {
+      var annot = defaultAnnotation();
+      annotationUI.addAnnotations([annot]);
+      var update = Object.assign({}, defaultAnnotation(), {text: 'update'});
+      annotationUI.addAnnotations([update]);
+
+      var updatedAnnot = annotationUI.getState().annotations[0];
+      assert.equal(updatedAnnot.text, 'update');
+    });
+
+    it('updates annotations with matching tags in the store', function () {
+      var annot = newAnnotation();
+      annot.$$tag = 'local-tag';
+      annotationUI.addAnnotations([annot]);
+
+      var saved = Object.assign({}, annot, {id: 'server-id'});
+      annotationUI.addAnnotations([saved]);
+
+      var annots = annotationUI.getState().annotations;
+      assert.equal(annots.length, 1);
+      assert.equal(annots[0].id, 'server-id');
+    });
+
+    // We add temporary created and updated timestamps to annotations to ensure
+    // that they sort correctly in the sidebar. These fields are ignored by the
+    // server.
+    it('adds created/updated timestamps to new annotations', function () {
+      var now = new Date();
+      var nowStr = now.toISOString();
+
+      annotationUI.addAnnotations([newAnnotation()], now);
+      var annot = annotationUI.getState().annotations[0];
+
+      assert.equal(annot.created, nowStr);
+      assert.equal(annot.updated, nowStr);
+    });
+
+    it('does not overwrite existing created/updated timestamps in new annotations', function () {
+      var now = new Date();
+      var annot = newAnnotation();
+      annot.created = '2000-01-01T01:02:03Z';
+      annot.updated = '2000-01-01T04:05:06Z';
+
+      annotationUI.addAnnotations([annot], now);
+      var result = annotationUI.getState().annotations[0];
+
+      assert.equal(result.created, annot.created);
+      assert.equal(result.updated, annot.updated);
+    });
+
+    it('preserves anchoring status of updated annotations', function () {
+      var annot = defaultAnnotation();
+      annotationUI.addAnnotations([annot]);
+      annotationUI.updateAnchorStatus(annot.id, null, false /* not an orphan */);
+
+      var update = Object.assign({}, defaultAnnotation(), {text: 'update'});
+      annotationUI.addAnnotations([update]);
+
+      var updatedAnnot = annotationUI.getState().annotations[0];
+      assert.isFalse(updatedAnnot.$orphan);
     });
 
     it('marks annotations as orphans if they fail to anchor within a time limit', function () {
@@ -116,6 +183,18 @@ describe('annotationUI', function () {
       clock.tick(ANCHOR_TIME_LIMIT);
 
       assert.isFalse(isOrphan());
+    });
+
+    it('initializes the $orphan field for new annotations', function () {
+      annotationUI.addAnnotations([newAnnotation()]);
+      assert.isFalse(annotationUI.getState().annotations[0].$orphan);
+    });
+
+    it('adds multiple new annotations', function () {
+      annotationUI.addAnnotations([fixtures.newPair[0]]);
+      annotationUI.addAnnotations([fixtures.newPair[1]]);
+
+      assert.equal(annotationUI.getState().annotations.length, 2);
     });
   });
 
@@ -339,9 +418,54 @@ describe('annotationUI', function () {
 
   describe('#selectTab()', function () {
     it('sets the selected tab', function () {
-      var annotationTab = 'annotation';
-      annotationUI.selectTab(annotationTab);
-      assert.equal(annotationUI.getState().selectedTab, annotationTab);
+      annotationUI.selectTab(uiConstants.TAB_ANNOTATIONS);
+      assert.equal(annotationUI.getState().selectedTab, uiConstants.TAB_ANNOTATIONS);
+    });
+
+    it('ignores junk tag names', function () {
+      annotationUI.selectTab('flibbertigibbert');
+      assert.equal(annotationUI.getState().selectedTab, uiConstants.TAB_ANNOTATIONS);
+    });
+
+    it('allows sorting annotations by time and document location', function () {
+      annotationUI.selectTab(uiConstants.TAB_ANNOTATIONS);
+      assert.deepEqual(annotationUI.getState().sortKeysAvailable, ['Newest', 'Oldest', 'Location']);
+    });
+
+    it('allows sorting page notes by time', function () {
+      annotationUI.selectTab(uiConstants.TAB_NOTES);
+      assert.deepEqual(annotationUI.getState().sortKeysAvailable, ['Newest', 'Oldest']);
+    });
+
+    it('allows sorting orphans by time and document location', function () {
+      annotationUI.selectTab(uiConstants.TAB_ORPHANS);
+      assert.deepEqual(annotationUI.getState().sortKeysAvailable, ['Newest', 'Oldest', 'Location']);
+    });
+
+    it('sorts annotations by document location by default', function () {
+      annotationUI.selectTab(uiConstants.TAB_ANNOTATIONS);
+      assert.deepEqual(annotationUI.getState().sortKey, 'Location');
+    });
+
+    it('sorts page notes from oldest to newest by default', function () {
+      annotationUI.selectTab(uiConstants.TAB_NOTES);
+      assert.deepEqual(annotationUI.getState().sortKey, 'Oldest');
+    });
+
+    it('sorts orphans by document location by default', function () {
+      annotationUI.selectTab(uiConstants.TAB_ORPHANS);
+      assert.deepEqual(annotationUI.getState().sortKey, 'Location');
+    });
+
+    it('does not reset the sort key unless necessary', function () {
+      // Select the tab, setting sort key to 'Oldest', and then manually
+      // override the sort key.
+      annotationUI.selectTab(uiConstants.TAB_NOTES);
+      annotationUI.setSortKey('Newest');
+
+      annotationUI.selectTab(uiConstants.TAB_NOTES);
+
+      assert.equal(annotationUI.getState().sortKey, 'Newest');
     });
   });
 
@@ -358,6 +482,15 @@ describe('annotationUI', function () {
       annotationUI.addAnnotations([annot]);
       annotationUI.updateAnchorStatus(annot.id, 'atag', true);
       assert.equal(annotationUI.getState().annotations[0].$orphan, true);
+    });
+
+    it('updates annotations by tag', function () {
+      annotationUI.addAnnotations(fixtures.newPair);
+      annotationUI.updateAnchorStatus(null, 't2', true);
+
+      var annots = annotationUI.getState().annotations;
+      assert.isFalse(annots[0].$orphan);
+      assert.isTrue(annots[1].$orphan);
     });
   });
 });

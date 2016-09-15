@@ -4,6 +4,60 @@ Entries in this change log follow the format suggested at http://keepachangelog.
 
 # Change Log
 
+## [0.43.0] - 2016-09-15
+
+### Added
+
+- Behind the `defer_realtime_updates` flag, add the ability to accumulate
+  "real-time" changes and display a button notifying users of new activity,
+  rather than automatically applying these changes to their view. This should
+  result in a less jumpy experience for users on heavily-annotated documents.
+  ([#106](https://github.com/hypothesis/client/pull/106)).
+
+## [0.42.0] - 2016-09-13
+
+### Changed
+
+- Only offer 'Newest' and 'Oldest' sort orders when Page Notes tab is selected
+  and sort Page Notes from oldest to newest by default
+  ([#99](https://github.com/hypothesis/client/pull/99)).
+
+- Sort unsaved annotations more predictably
+  ([#101](https://github.com/hypothesis/client/pull/101)).
+
+## [0.41.0] - 2016-09-12
+
+### Fixed
+
+- Fix behavior when there are multiple unsaved annotations
+  ([#95](https://github.com/hypothesis/client/pull/95)).
+
+## [0.40.0] - 2016-09-09
+
+### Changed
+
+- When retrieving an API token, the client now sends the CSRF token in a header
+  rather than in a GET request parameter
+  ([#91](https://github.com/hypothesis/client/pull/91)).
+
+## [0.39.0] - 2016-09-06
+
+### Changed
+
+- In browsers that support it, the adder is now isolated from the styling of the
+  annotated page using Shadow DOM
+  ([#49](https://github.com/hypothesis/client/pull/49)).
+
+- The selected tab (annotations/page notes/orphans) is now preserved when
+  changing groups ([#82](https://github.com/hypothesis/client/pull/82)).
+
+### Fixed
+
+- Fix an issue where annotations updated via the websocket would unanchor,
+  causing disturbance for anyone trying to annotate on the same page
+  ([#87](https://github.com/hypothesis/client/pull/87),
+  [#88](https://github.com/hypothesis/client/pull/88)).
+
 ## [0.38.1] - 2016-08-09
 
 ### Fixed
