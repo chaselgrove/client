@@ -10,15 +10,6 @@
       always-expanded="true">
     </search-input>
     <div class="top-bar__expander"></div>
-    <a class="top-bar__apply-update-btn"
-       ng-if="pendingUpdateCount > 0"
-       ng-click="onApplyPendingUpdates()"
-       h-tooltip
-       tooltip-direction="up"
-       aria-label="View {{pendingUpdateCount}} updates">
-       <svg-icon class="top-bar__apply-icon" name="'refresh'"></svg-icon>
-       {{pendingUpdateCount}}
-    </a>
     <login-control
       auth="auth"
       new-style="false"
@@ -40,9 +31,8 @@
        ng-click="onApplyPendingUpdates()"
        h-tooltip
        tooltip-direction="up"
-       aria-label="View {{pendingUpdateCount}} updates">
+       aria-label="Show {{pendingUpdateCount}} new/updated annotation(s)">
        <svg-icon class="top-bar__apply-icon" name="'refresh'"></svg-icon>
-       {{pendingUpdateCount}}
     </a>
     <search-input
       class="search-input"

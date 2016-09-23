@@ -19,7 +19,8 @@ var Socket = require('./websocket');
  * @param settings - Application settings
  */
 // @ngInject
-function Streamer($rootScope, annotationMapper, features, groups, session, settings) {
+function Streamer($rootScope, annotationMapper, annotationUI, features, groups,
+                  session, settings) {
   // The randomly generated session UUID
   var clientId = uuid.v4();
 
@@ -51,27 +52,40 @@ function Streamer($rootScope, annotationMapper, features, groups, session, setti
     var action = message.options.action;
     var annotations = message.payload;
 
-    if (annotations.length === 0) {
-      return;
-    }
-
     switch (action) {
     case 'create':
     case 'update':
     case 'past':
       annotations.forEach(function (ann) {
-        pendingUpdates[ann.id] = ann;
+        // In the sidebar, only save pending updates for annotations in the
+        // focused group, since we only display annotations from the focused
+        // group and reload all annotations and discard pending updates
+        // when switching groups.
+        if (ann.group === groups.focused().id || !annotationUI.isSidebar()) {
+          pendingUpdates[ann.id] = ann;
+        }
       });
       break;
     case 'delete':
       annotations.forEach(function (ann) {
+        // Discard any pending but not-yet-applied updates for this annotation
         delete pendingUpdates[ann.id];
-        pendingDeletions[ann.id] = true;
+
+        // If we already have this annotation loaded, then record a pending
+        // deletion. We do not check the group of the annotation here because a)
+        // that information is not included with deletion notifications and b)
+        // even if the annotation is from the current group, it might be for a
+        // new annotation (saved in pendingUpdates and removed above), that has
+        // not yet been loaded.
+        if (annotationUI.annotationExists(ann.id)) {
+          pendingDeletions[ann.id] = true;
+        }
       });
       break;
     }
 
-    if (!features.flagEnabled('defer_realtime_updates')) {
+    if (!features.flagEnabled('defer_realtime_updates') ||
+        !annotationUI.isSidebar()) {
       applyPendingUpdates();
     }
   }
@@ -173,23 +187,25 @@ function Streamer($rootScope, annotationMapper, features, groups, session, setti
   };
 
   function applyPendingUpdates() {
-    var updates = Object.values(pendingUpdates).filter(function (ann) {
-      // Ignore updates to annotations that are not in the focused group
-      return ann.group === groups.focused().id;
-    });
+    var updates = Object.values(pendingUpdates);
     var deletions = Object.keys(pendingDeletions).map(function (id) {
       return {id: id};
     });
 
-    annotationMapper.loadAnnotations(updates);
-    annotationMapper.unloadAnnotations(deletions);
+    if (updates.length) {
+      annotationMapper.loadAnnotations(updates);
+    }
+    if (deletions.length) {
+      annotationMapper.unloadAnnotations(deletions);
+    }
 
     pendingUpdates = {};
     pendingDeletions = {};
   }
 
   function countPendingUpdates() {
-    return Object.keys(pendingUpdates).length;
+    return Object.keys(pendingUpdates).length +
+           Object.keys(pendingDeletions).length;
   }
 
   function hasPendingDeletion(id) {

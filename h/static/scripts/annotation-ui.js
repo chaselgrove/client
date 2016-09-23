@@ -103,6 +103,11 @@ module.exports = function ($rootScope, settings) {
   var selectors = util.bindSelectors({
     isAnnotationSelected: selectionReducer.isAnnotationSelected,
     hasSelectedAnnotations: selectionReducer.hasSelectedAnnotations,
+
+    annotationExists: annotationsReducer.annotationExists,
+    savedAnnotations: annotationsReducer.savedAnnotations,
+
+    isSidebar: viewerReducer.isSidebar,
   }, store.getState);
 
   return Object.assign(store, actionCreators, selectors);
