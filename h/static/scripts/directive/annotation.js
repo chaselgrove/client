@@ -235,7 +235,7 @@ function AnnotationController(
   };
 
   vm.applet = function(e) {
-    var annotation_cards = document.querySelectorAll('.annotation-card');
+    var annotation_cards = document.querySelectorAll('.thread-list__card');
     var id;
     for ( var i=0; i< annotation_cards.length; i++ ) {
       var annotation_card = annotation_cards[i];
